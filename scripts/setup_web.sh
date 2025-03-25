@@ -78,7 +78,7 @@ if (\$_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (\$result->num_rows > 0) {
         echo "<h2>Liste des utilisateurs</h2>";
-        echo "<table border='1' cellpadding='10' style='border-collapse: collapse;' width='60%;'color: #333;'>";
+        echo "<table border='1' cellpadding='10' style='border-collapse: collapse;' width='60%'>";
         echo "<tr><th>ID</th><th>Nom</th><th>Prenom</th><th>Email</th></tr>";
         while(\$row = \$result->fetch_assoc()) {
             echo "<tr><td>" . \$row["id"]. "</td><td>" . \$row["nom"]. "</td><td>" . \$row["prenom"]. "</td><td>" . \$row["email"]. "</td></tr>";

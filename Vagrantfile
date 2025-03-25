@@ -4,6 +4,7 @@ Vagrant.configure("2") do |config|
     lb.vm.box = "ubuntu/bionic64"
     lb.vm.network "private_network", ip: "192.168.56.10"
     lb.vm.provision "shell", path: "scripts/setup_lb.sh"
+    lb.vm.network "forwarded_port", guest: 80, host: 8083
     lb.vm.provider "virtualbox" do |vb|
       vb.memory = "512"
       vb.cpus = 1
