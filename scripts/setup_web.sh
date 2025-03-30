@@ -1,5 +1,4 @@
 #!/bin/bash
-# filepath: e:\IBAM\Virtualisation\test-copilot\multi-machine-infrastructure\scripts\setup_web.sh
 
 # Update package list and install Apache and PHP
 sudo apt-get update

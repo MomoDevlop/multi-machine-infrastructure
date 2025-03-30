@@ -1,6 +1,4 @@
 #!/bin/bash
-# filepath: e:\IBAM\Virtualisation\test-copilot\multi-machine-infrastructure\scripts\setup_lb.sh
-
 # Update package list and install Nginx
 sudo apt-get update
 sudo apt-get install -y nginx

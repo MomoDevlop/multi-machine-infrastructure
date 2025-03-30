@@ -1,10 +1,13 @@
 #!/bin/bash
 # filepath: e:\IBAM\Virtualisation\test-copilot\multi-machine-infrastructure\scripts\setup_monitoring.sh
 
-# Update package list
+# Mettre à jour la liste des paquets
 sudo apt-get update
 
-# Install Prometheus
+# Installer les dépendances nécessaires
+sudo apt-get install -y wget tar libfontconfig1 ufw
+
+# Installer Prometheus
 sudo useradd --no-create-home --shell /bin/false prometheus
 sudo mkdir /etc/prometheus
 sudo mkdir /var/lib/prometheus
@@ -21,7 +24,7 @@ sudo cp -r prometheus-${PROMETHEUS_VERSION}.linux-amd64/console_libraries /etc/p
 sudo cp prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus.yml /etc/prometheus/prometheus.yml
 sudo chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
 
-# Create Prometheus service
+# Créer le service systemd pour Prometheus
 cat <<EOL | sudo tee /etc/systemd/system/prometheus.service
 [Unit]
 Description=Prometheus
@@ -38,20 +41,36 @@ ExecStart=/usr/local/bin/prometheus --config.file /etc/prometheus/prometheus.yml
 WantedBy=multi-user.target
 EOL
 
-# Start Prometheus service
+# Démarrer et activer le service Prometheus
 sudo systemctl daemon-reload
 sudo systemctl start prometheus
 sudo systemctl enable prometheus
 
-# Install Grafana
-wget https://dl.grafana.com/oss/release/grafana_7.5.7_amd64.deb
-sudo dpkg -i grafana_7.5.7_amd64.deb
+# Vérifier que Prometheus fonctionne
+if systemctl is-active --quiet prometheus; then
+  echo "Prometheus est actif."
+else
+  echo "Erreur : Prometheus ne fonctionne pas." >&2
+  exit 1
+fi
 
-# Start Grafana service
+# Installer Grafana
+wget https://dl.grafana.com/oss/release/grafana_7.5.7_amd64.deb
+sudo dpkg -i grafana_7.5.7_amd64.deb || sudo apt-get install -f -y
+
+# Démarrer et activer le service Grafana
 sudo systemctl start grafana-server
 sudo systemctl enable grafana-server
 
-# Configure Prometheus to monitor the cluster
+# Vérifier que Grafana fonctionne
+if systemctl is-active --quiet grafana-server; then
+  echo "Grafana est actif."
+else
+  echo "Erreur : Grafana ne fonctionne pas." >&2
+  exit 1
+fi
+
+# Configurer Prometheus pour surveiller le cluster
 cat <<EOL | sudo tee /etc/prometheus/prometheus.yml
 global:
   scrape_interval: 15s
@@ -66,9 +85,25 @@ scrape_configs:
       - targets: ['192.168.56.10:9100', '192.168.56.11:9100', '192.168.56.12:9100', '192.168.56.13:9100', '192.168.56.14:9100', '192.168.56.15:9100', '192.168.56.16:9100']
 EOL
 
-# Restart Prometheus to apply the new configuration
+# Redémarrer Prometheus pour appliquer la nouvelle configuration
 sudo systemctl restart prometheus
 
-# Allow HTTP traffic through the firewall
+# Vérifier que Prometheus collecte les métriques
+if curl -s http://localhost:9090/targets | grep -q "UP"; then
+  echo "Prometheus collecte les métriques avec succès."
+else
+  echo "Erreur : Prometheus ne collecte pas les métriques." >&2
+  exit 1
+fi
+
+# Configurer                                                                                                                                                                                                                                                           le pare-feu pour autoriser le trafic HTTP
 sudo ufw allow 3000/tcp  # Grafana
 sudo ufw allow 9090/tcp  # Prometheus
+sudo ufw --force enable
+# Vérifier que les ports sont accessibles
+if nc -zv localhost 9090 && nc -zv localhost 3000; then
+  echo "Les ports 9090 (Prometheus) et 3000 (Grafana) sont accessibles."
+else
+  echo "Erreur : Les ports 9090 ou 3000 ne sont pas accessibles." >&2
+  exit 1
+fi
